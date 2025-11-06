@@ -30,9 +30,21 @@ export async function GET(request: NextRequest) {
 			];
 		}
 
-		const books = await Book.find(query).sort({ createdAt: -1 });
+		const books = await Book.find(query).sort({ createdAt: -1 }).lean();
 
-		return NextResponse.json({ books }, { status: 200 });
+		// Manually populate borrowedBy for books that have it
+		const populatedBooks = books.map((book: any) => {
+			return {
+				...book,
+				borrowedBy: book.borrowedBy
+					? typeof book.borrowedBy === "object"
+						? book.borrowedBy._id?.toString()
+						: book.borrowedBy.toString()
+					: null,
+			};
+		});
+
+		return NextResponse.json({ books: populatedBooks }, { status: 200 });
 	} catch (error: any) {
 		console.error("Error fetching books:", error);
 		return NextResponse.json(

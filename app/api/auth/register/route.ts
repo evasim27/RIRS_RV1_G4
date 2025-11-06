@@ -5,7 +5,7 @@ import User from "@/models/User";
 
 export async function POST(request: NextRequest) {
 	try {
-		const { firstName, lastName, email, password } = await request.json();
+		const { firstName, lastName, email, password, role } = await request.json();
 
 		// Validate input
 		if (!firstName || !lastName || !email || !password) {
@@ -44,6 +44,10 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
+		// Validate role if provided
+		const validRoles = ["user", "librarian", "admin"];
+		const userRole = role && validRoles.includes(role) ? role : "user";
+
 		// Hash password
 		const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -53,6 +57,7 @@ export async function POST(request: NextRequest) {
 			lastName,
 			email: email.toLowerCase(),
 			password: hashedPassword,
+			role: userRole,
 		});
 
 		// Return success response (exclude password)
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest) {
 					firstName: user.firstName,
 					lastName: user.lastName,
 					email: user.email,
+					role: user.role,
 				},
 			},
 			{ status: 201 }

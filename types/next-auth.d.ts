@@ -7,6 +7,7 @@ declare module "next-auth" {
 		email: string;
 		firstName: string;
 		lastName: string;
+		role: "user" | "librarian" | "admin";
 	}
 
 	interface Session {
@@ -15,6 +16,7 @@ declare module "next-auth" {
 			email: string;
 			firstName: string;
 			lastName: string;
+			role: "user" | "librarian" | "admin";
 		};
 	}
 }
@@ -24,5 +26,6 @@ declare module "next-auth/jwt" {
 		id: string;
 		firstName: string;
 		lastName: string;
+		role: "user" | "librarian" | "admin";
 	}
 }

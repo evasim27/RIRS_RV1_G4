@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import SmartImage from "@/components/SmartImage";
 
 export default function LoginPage() {
 	const router = useRouter();
@@ -172,16 +173,18 @@ export default function LoginPage() {
 				</div>
 			</div>
 
-			{/* Right Side - Image Placeholder */}
+			{/* Right Side - Image */}
 			<div className="hidden lg:block relative flex-1 bg-gray-100 dark:bg-gray-800">
-				<div className="absolute inset-0 flex items-center justify-center">
-					<svg
-						className="w-64 h-64 text-gray-300 dark:text-gray-600"
-						fill="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-					</svg>
+				{/* Use next/image to serve the image from public/njige.jpg. Use object-contain so the whole photo is visible and centered. */}
+				<div className="absolute inset-0 flex items-center justify-center p-8">
+					<SmartImage
+						src="/njige.jpg"
+						alt="Books"
+						fill
+						className="object-contain object-center w-full h-full"
+						sizes="(min-width: 1024px) 50vw, 100vw"
+						priority={false}
+					/>
 				</div>
 			</div>
 		</div>

@@ -5,6 +5,7 @@ export interface IUser extends Document {
 	lastName: string;
 	email: string;
 	password: string;
+	role: "user" | "librarian" | "admin";
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -40,6 +41,12 @@ const UserSchema: Schema<IUser> = new Schema(
 			type: String,
 			required: [true, "Password is required"],
 			minlength: [6, "Password must be at least 6 characters"],
+		},
+		role: {
+			type: String,
+			enum: ["user", "librarian", "admin"],
+			default: "user",
+			required: [true, "Role is required"],
 		},
 	},
 	{

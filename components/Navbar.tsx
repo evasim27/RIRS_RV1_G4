@@ -59,11 +59,16 @@ export default function Navbar() {
 									>
 										Books
 									</Link>
+									<Link
+										href="/my-books"
+										className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-sm font-medium transition-colors"
+									>
+										My Books
+									</Link>
 								</>
 							)}
 						</div>
-					</div>
-
+					</div>{" "}
 					{/* Desktop Auth Section */}
 					<div className="hidden md:flex md:items-center md:space-x-4">
 						{status === "loading" ? (
@@ -112,7 +117,6 @@ export default function Navbar() {
 							</div>
 						)}
 					</div>
-
 					{/* Mobile menu button */}
 					<div className="flex items-center md:hidden">
 						<button
@@ -180,6 +184,13 @@ export default function Navbar() {
 									onClick={() => setIsMenuOpen(false)}
 								>
 									Books
+								</Link>
+								<Link
+									href="/my-books"
+									className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-base font-medium"
+									onClick={() => setIsMenuOpen(false)}
+								>
+									My Books
 								</Link>
 							</>
 						)}

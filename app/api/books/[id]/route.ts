@@ -3,14 +3,14 @@ import connectDB from "@/lib/mongodb";
 import Book from "@/models/Book";
 
 // GET single book
-export async function GET(
-	request: NextRequest,
-	{ params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: any }) {
 	try {
 		await connectDB();
 
-		const book = await Book.findById(params.id);
+		// params can be a Promise in the App Router — unwrap it before use
+		const { id } = await params;
+
+		const book = await Book.findById(id);
 
 		if (!book) {
 			return NextResponse.json({ error: "Book not found" }, { status: 404 });
@@ -27,10 +27,7 @@ export async function GET(
 }
 
 // PUT update book
-export async function PUT(
-	request: NextRequest,
-	{ params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, { params }: { params: any }) {
 	try {
 		const body = await request.json();
 		const {
@@ -57,8 +54,11 @@ export async function PUT(
 
 		await connectDB();
 
+		// params may be a Promise — unwrap to get the id
+		const { id } = await params;
+
 		const book = await Book.findByIdAndUpdate(
-			params.id,
+			id,
 			{
 				title,
 				author,
@@ -102,12 +102,15 @@ export async function PUT(
 // DELETE book
 export async function DELETE(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: { params: any }
 ) {
 	try {
 		await connectDB();
 
-		const book = await Book.findByIdAndDelete(params.id);
+		// unwrap params before accessing
+		const { id } = await params;
+
+		const book = await Book.findByIdAndDelete(id);
 
 		if (!book) {
 			return NextResponse.json({ error: "Book not found" }, { status: 404 });

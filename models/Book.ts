@@ -9,6 +9,9 @@ export interface IBook extends Document {
 	coverImage?: string;
 	publicationDate?: Date;
 	isbn?: string;
+	borrowedBy?: mongoose.Types.ObjectId;
+	borrowedDate?: Date;
+	dueDate?: Date;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -60,6 +63,19 @@ const BookSchema: Schema<IBook> = new Schema(
 		isbn: {
 			type: String,
 			trim: true,
+		},
+		borrowedBy: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			default: null,
+		},
+		borrowedDate: {
+			type: Date,
+			default: null,
+		},
+		dueDate: {
+			type: Date,
+			default: null,
 		},
 	},
 	{
