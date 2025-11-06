@@ -39,25 +39,13 @@ export default function Navbar() {
 
 						{/* Desktop Navigation Links */}
 						<div className="hidden md:ml-10 md:flex md:space-x-8">
-							<Link
-								href="/"
-								className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-sm font-medium transition-colors"
-							>
-								Home
-							</Link>
 							{session && (
 								<>
 									<Link
 										href="/dashboard"
 										className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-sm font-medium transition-colors"
 									>
-										Dashboard
-									</Link>
-									<Link
-										href="/books"
-										className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-sm font-medium transition-colors"
-									>
-										Books
+										Library
 									</Link>
 									<Link
 										href="/my-books"
@@ -176,14 +164,7 @@ export default function Navbar() {
 									className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-base font-medium"
 									onClick={() => setIsMenuOpen(false)}
 								>
-									Dashboard
-								</Link>
-								<Link
-									href="/books"
-									className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-base font-medium"
-									onClick={() => setIsMenuOpen(false)}
-								>
-									Books
+									Library
 								</Link>
 								<Link
 									href="/my-books"
