@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-	// Allow external image hostname so `next/image` can load images from it.
+	// Allow external images from any domain. Use `remotePatterns` with
+	// wildcard hostnames for flexible matching and set `unoptimized: true`
+	// as a fallback to avoid the Next.js image optimizer blocking unknown hosts.
 	images: {
-		domains: ["www.gacka053.com"],
-		// If you later need more flexible matching, consider using `remotePatterns`.
+		remotePatterns: [
+			{ protocol: "https", hostname: "**", port: "", pathname: "/**" },
+			{ protocol: "http", hostname: "**", port: "", pathname: "/**" },
+		],
+		unoptimized: true,
 	},
 };
 

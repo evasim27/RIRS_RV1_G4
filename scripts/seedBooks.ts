@@ -1,13 +1,19 @@
 import connectDB from "../lib/mongodb";
 import Book from "../models/Book";
+import User from "../models/User";
+import type { IBook } from "../models/Book";
 
 async function seedBooks() {
 	try {
 		console.log("Connecting to database...");
 		await connectDB();
 
-		// Sample books data
-		const sampleBooks = [
+		// Sample books data (extended with full object fields)
+		// All books will include `coverImage` set to the provided image URL.
+		const coverImageUrl =
+			"https://img.pikbest.com/templates/20241024/creative-and-minimalist-book-cover-template-page-design-for-your-business-_10998934.jpg!sw800";
+
+		const sampleBooks: Partial<IBook>[] = [
 			{
 				title: "To Kill a Mockingbird",
 				author: "Harper Lee",
@@ -16,6 +22,8 @@ async function seedBooks() {
 				category: "Fiction",
 				status: "Available",
 				isbn: "978-0-06-112008-4",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1960-07-11"),
 			},
 			{
 				title: "1984",
@@ -25,6 +33,8 @@ async function seedBooks() {
 				category: "Science Fiction",
 				status: "Available",
 				isbn: "978-0-452-28423-4",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1949-06-08"),
 			},
 			{
 				title: "Pride and Prejudice",
@@ -34,6 +44,8 @@ async function seedBooks() {
 				category: "Romance",
 				status: "Borrowed",
 				isbn: "978-0-14-143951-8",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1813-01-28"),
 			},
 			{
 				title: "The Great Gatsby",
@@ -43,6 +55,8 @@ async function seedBooks() {
 				category: "Fiction",
 				status: "Available",
 				isbn: "978-0-7432-7356-5",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1925-04-10"),
 			},
 			{
 				title: "Sapiens: A Brief History of Humankind",
@@ -52,6 +66,8 @@ async function seedBooks() {
 				category: "Non-Fiction",
 				status: "Available",
 				isbn: "978-0-06-231609-7",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("2011-09-04"),
 			},
 			{
 				title: "The Hobbit",
@@ -61,6 +77,8 @@ async function seedBooks() {
 				category: "Fantasy",
 				status: "Borrowed",
 				isbn: "978-0-547-92822-7",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1937-09-21"),
 			},
 			{
 				title: "Educated",
@@ -70,6 +88,8 @@ async function seedBooks() {
 				category: "Biography",
 				status: "Available",
 				isbn: "978-0-399-59050-4",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("2018-02-20"),
 			},
 			{
 				title: "The Catcher in the Rye",
@@ -79,6 +99,8 @@ async function seedBooks() {
 				category: "Fiction",
 				status: "Available",
 				isbn: "978-0-316-76948-0",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1951-07-16"),
 			},
 			{
 				title: "Harry Potter and the Philosopher's Stone",
@@ -88,6 +110,8 @@ async function seedBooks() {
 				category: "Fantasy",
 				status: "Borrowed",
 				isbn: "978-0-7475-3269-9",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1997-06-26"),
 			},
 			{
 				title: "Atomic Habits",
@@ -97,6 +121,8 @@ async function seedBooks() {
 				category: "Self-Help",
 				status: "Available",
 				isbn: "978-0-7352-1129-2",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("2018-10-16"),
 			},
 			{
 				title: "The Alchemist",
@@ -106,6 +132,8 @@ async function seedBooks() {
 				category: "Fiction",
 				status: "Available",
 				isbn: "978-0-06-112241-5",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1988-04-15"),
 			},
 			{
 				title: "Dune",
@@ -115,28 +143,75 @@ async function seedBooks() {
 				category: "Science Fiction",
 				status: "Available",
 				isbn: "978-0-441-17271-9",
+				coverImage: coverImageUrl,
+				publicationDate: new Date("1965-08-01"),
 			},
 		];
+		// Find a borrower user (if present) to attach to borrowed books
+		const borrowerUser = await User.findOne({ email: "librarian@library.com" });
+		const borrowerId = borrowerUser ? borrowerUser._id : undefined;
+
+		// If a book's status is Borrowed, add borrowedBy/borrowedDate/dueDate if possible
+		const now = new Date();
+		const sevenDaysAgo = new Date(now);
+		sevenDaysAgo.setDate(now.getDate() - 7);
+		const sevenDaysFromNow = new Date(now);
+		sevenDaysFromNow.setDate(now.getDate() + 7);
+
+		const enrichedBooks = sampleBooks.map((b) => {
+			// Ensure every book has the optional fields present (may be null)
+			const base = {
+				...b,
+				coverImage: b.coverImage || coverImageUrl,
+				publicationDate: b.publicationDate || undefined,
+				isbn: b.isbn || undefined,
+				borrowedBy: undefined,
+				borrowedDate: undefined,
+				dueDate: undefined,
+			} as Partial<IBook>;
+
+			if (b.status === "Borrowed") {
+				return {
+					...base,
+					borrowedBy: borrowerId,
+					borrowedDate: sevenDaysAgo,
+					dueDate: sevenDaysFromNow,
+				};
+			}
+
+			return base;
+		});
 
 		// Check if books already exist
 		const existingBooks = await Book.countDocuments();
-		if (existingBooks > 0) {
+		const forceSeed = process.env.FORCE_SEED === "true";
+		if (existingBooks > 0 && !forceSeed) {
 			console.log(
 				`Database already contains ${existingBooks} books. Skipping seed.`
 			);
 			console.log(
-				"If you want to reseed, please clear the books collection first."
+				"If you want to reseed, set the environment variable FORCE_SEED=true and re-run this script."
 			);
 			process.exit(0);
 		}
 
-		// Insert sample books
-		await Book.insertMany(sampleBooks);
-		console.log(`✓ Successfully added ${sampleBooks.length} sample books`);
-		console.log("\nSample books:");
-		sampleBooks.forEach((book, index) => {
+		if (existingBooks > 0 && forceSeed) {
 			console.log(
-				`  ${index + 1}. "${book.title}" by ${book.author} [${book.status}]`
+				"FORCE_SEED=true detected — clearing existing books collection..."
+			);
+			await Book.deleteMany({});
+			console.log("Existing books cleared.");
+		}
+		// Insert sample books
+		await Book.insertMany(enrichedBooks);
+		console.log(`✓ Successfully added ${enrichedBooks.length} sample books`);
+		console.log("\nSample books:");
+		enrichedBooks.forEach((book, index) => {
+			const b = book as Partial<IBook>;
+			console.log(
+				`  ${index + 1}. "${b.title}" by ${b.author} [${b.status}] cover=${
+					b.coverImage ? "yes" : "no"
+				} isbn=${b.isbn ? b.isbn : "(none)"}`
 			);
 		});
 
