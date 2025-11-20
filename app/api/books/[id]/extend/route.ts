@@ -26,37 +26,49 @@ export async function POST(
 			return NextResponse.json({ error: "Book not found" }, { status: 404 });
 		}
 
-		// Check if book is available
-		if (book.status === "Borrowed") {
+		// Check if book is borrowed
+		if (book.status !== "Borrowed") {
 			return NextResponse.json(
-				{ error: "Book is already borrowed" },
+				{ error: "Book is not currently borrowed" },
 				{ status: 400 }
 			);
 		}
 
-		// Set borrow dates
-		const borrowedDate = new Date();
-		const dueDate = new Date();
-		dueDate.setDate(dueDate.getDate() + 14); // Due in 14 days
+		// Check if current user is the one who borrowed it
+		if (book.borrowedBy?.toString() !== session.user.id) {
+			return NextResponse.json(
+				{ error: "You can only extend books you borrowed" },
+				{ status: 403 }
+			);
+		}
 
-		// Update book
-		book.status = "Borrowed";
-		book.borrowedBy = session.user.id as any;
-		book.borrowedDate = borrowedDate;
-		book.dueDate = dueDate;
+		// Check if book has a due date
+		if (!book.dueDate) {
+			return NextResponse.json(
+				{ error: "Book has no due date set" },
+				{ status: 400 }
+			);
+		}
+
+		// Extend due date by 7 days from current due date
+		const newDueDate = new Date(book.dueDate);
+		newDueDate.setDate(newDueDate.getDate() + 7);
+
+		book.dueDate = newDueDate;
 		await book.save();
 
 		return NextResponse.json(
 			{
-				message: "Book borrowed successfully",
+				message: "Borrowing period extended successfully",
 				book,
+				newDueDate: newDueDate.toISOString(),
 			},
 			{ status: 200 }
 		);
 	} catch (error: any) {
-		console.error("Error borrowing book:", error);
+		console.error("Error extending borrowing period:", error);
 		return NextResponse.json(
-			{ error: "Failed to borrow book" },
+			{ error: "Failed to extend borrowing period" },
 			{ status: 500 }
 		);
 	}

@@ -12,6 +12,10 @@ export interface IBook extends Document {
 	borrowedBy?: mongoose.Types.ObjectId;
 	borrowedDate?: Date;
 	dueDate?: Date;
+	reservedBy?: mongoose.Types.ObjectId;
+	reservedDate?: Date;
+	averageRating?: number;
+	reviewCount?: number;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -76,6 +80,26 @@ const BookSchema: Schema<IBook> = new Schema(
 		dueDate: {
 			type: Date,
 			default: null,
+		},
+		reservedBy: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+			default: null,
+		},
+		reservedDate: {
+			type: Date,
+			default: null,
+		},
+		averageRating: {
+			type: Number,
+			default: 0,
+			min: 0,
+			max: 5,
+		},
+		reviewCount: {
+			type: Number,
+			default: 0,
+			min: 0,
 		},
 	},
 	{

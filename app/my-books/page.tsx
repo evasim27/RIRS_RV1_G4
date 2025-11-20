@@ -27,6 +27,7 @@ export default function MyBooksPage() {
 	const router = useRouter();
 	const [books, setBooks] = useState<Book[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [extending, setExtending] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (status === "unauthenticated") {
@@ -55,6 +56,28 @@ export default function MyBooksPage() {
 			console.error("Error fetching borrowed books:", error);
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleExtend = async (bookId: string) => {
+		setExtending(bookId);
+		try {
+			const response = await fetch(`/api/books/${bookId}/extend`, {
+				method: "POST",
+			});
+			const data = await response.json();
+
+			if (response.ok) {
+				// Refresh books list
+				await fetchMyBooks();
+			} else {
+				alert(data.error || "Failed to extend borrowing period");
+			}
+		} catch (error) {
+			console.error("Error extending borrowing period:", error);
+			alert("An error occurred while extending the borrowing period");
+		} finally {
+			setExtending(null);
 		}
 	};
 
@@ -135,7 +158,7 @@ export default function MyBooksPage() {
 							collection.
 						</p>
 						<button
-							onClick={() => router.push("/books")}
+							onClick={() => router.push("/dashboard")}
 							className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600"
 						>
 							Browse Books
@@ -269,6 +292,32 @@ export default function MyBooksPage() {
 															: "N/A"}
 													</p>
 												</div>
+											</div>
+
+											{/* Extend Button */}
+											<div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+												<button
+													onClick={() => handleExtend(book._id)}
+													disabled={extending === book._id}
+													className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 rounded-md transition-colors flex items-center justify-center gap-2"
+												>
+													<svg
+														className="w-4 h-4"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth={2}
+															d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+														/>
+													</svg>
+													{extending === book._id
+														? "Extending..."
+														: "Extend Borrowing (+7 days)"}
+												</button>
 											</div>
 										</div>
 									</div>

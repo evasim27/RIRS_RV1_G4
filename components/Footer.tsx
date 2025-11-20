@@ -1,10 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
 	const currentYear = new Date().getFullYear();
+	const { data: session } = useSession();
+	const pathname = usePathname();
+
+	// Pages that should NOT have sidebar margin (login, register, home when not logged in)
+	const noSidebarPages = ["/", "/login", "/register"];
+	const shouldHaveSidebar = session && !noSidebarPages.includes(pathname);
 
 	return (
-		<footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+		<footer
+			className={`bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 ${
+				shouldHaveSidebar ? "md:ml-64" : ""
+			}`}
+		>
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 				<div className="grid grid-cols-1 md:grid-cols-4 gap-8">
 					{/* About Section */}

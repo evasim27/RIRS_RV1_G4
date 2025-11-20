@@ -6,6 +6,11 @@ export interface IUser extends Document {
 	email: string;
 	password: string;
 	role: "user" | "librarian" | "admin";
+	blocked: boolean;
+	notificationPreferences?: {
+		dueDateReminders: boolean;
+		overdueNotices: boolean;
+	};
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -47,6 +52,26 @@ const UserSchema: Schema<IUser> = new Schema(
 			enum: ["user", "librarian", "admin"],
 			default: "user",
 			required: [true, "Role is required"],
+		},
+		blocked: {
+			type: Boolean,
+			default: false,
+		},
+		notificationPreferences: {
+			type: {
+				dueDateReminders: {
+					type: Boolean,
+					default: true,
+				},
+				overdueNotices: {
+					type: Boolean,
+					default: true,
+				},
+			},
+			default: {
+				dueDateReminders: true,
+				overdueNotices: true,
+			},
 		},
 	},
 	{

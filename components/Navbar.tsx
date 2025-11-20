@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
+import NotificationDropdown from "./NotificationDropdown";
 
 export default function Navbar() {
 	const { data: session, status } = useSession();
@@ -53,6 +54,23 @@ export default function Navbar() {
 									>
 										My Books
 									</Link>
+									{(session.user.role === "librarian" ||
+										session.user.role === "admin") && (
+										<Link
+											href="/dashboard/reservations"
+											className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-sm font-medium transition-colors"
+										>
+											Reservations
+										</Link>
+									)}
+									{session.user.role === "admin" && (
+										<Link
+											href="/dashboard/users"
+											className="text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-sm font-medium transition-colors"
+										>
+											User Management
+										</Link>
+									)}
 								</>
 							)}
 						</div>
@@ -65,6 +83,7 @@ export default function Navbar() {
 							</div>
 						) : session ? (
 							<div className="flex items-center space-x-4">
+								<NotificationDropdown />
 								<div className="flex items-center space-x-2">
 									<div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
 										<span className="text-white text-sm font-medium">
@@ -173,6 +192,25 @@ export default function Navbar() {
 								>
 									My Books
 								</Link>
+								{(session.user.role === "librarian" ||
+									session.user.role === "admin") && (
+									<Link
+										href="/dashboard/reservations"
+										className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-base font-medium"
+										onClick={() => setIsMenuOpen(false)}
+									>
+										Reservations
+									</Link>
+								)}
+								{session.user.role === "admin" && (
+									<Link
+										href="/dashboard/users"
+										className="block text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 text-base font-medium"
+										onClick={() => setIsMenuOpen(false)}
+									>
+										User Management
+									</Link>
+								)}
 							</>
 						)}
 					</div>

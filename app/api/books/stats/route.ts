@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
 
 		return NextResponse.json(
 			{
-				totalBooks,
-				availableBooks,
-				borrowedBooks,
+				total: totalBooks,
+				available: availableBooks,
+				borrowed: borrowedBooks,
 			},
 			{ status: 200 }
 		);

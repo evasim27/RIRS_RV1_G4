@@ -29,6 +29,13 @@ export const authOptions: NextAuthOptions = {
 						throw new Error("Invalid email or password");
 					}
 
+					// Check if user is blocked
+					if (user.blocked) {
+						throw new Error(
+							"Your account has been blocked. Please contact an administrator."
+						);
+					}
+
 					// Verify password
 					const isPasswordValid = await bcrypt.compare(
 						credentials.password,

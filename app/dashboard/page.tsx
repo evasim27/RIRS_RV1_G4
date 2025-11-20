@@ -24,6 +24,8 @@ interface Book {
 	isbn?: string;
 	dueDate?: string;
 	borrowedBy?: string | null;
+	reservedBy?: string | null;
+	reservedDate?: string;
 }
 
 export default function DashboardPage() {
@@ -45,6 +47,11 @@ export default function DashboardPage() {
 	const [bookToDelete, setBookToDelete] = useState<string | null>(null);
 	const [borrowing, setBorrowing] = useState<string | null>(null);
 	const [returning, setReturning] = useState<string | null>(null);
+	const [reserving, setReserving] = useState<string | null>(null);
+	const [userReservations, setUserReservations] = useState<Set<string>>(
+		new Set()
+	);
+	const [suggestedBook, setSuggestedBook] = useState<Book | null>(null);
 
 	useEffect(() => {
 		if (status === "unauthenticated") {
@@ -52,6 +59,7 @@ export default function DashboardPage() {
 		} else if (status === "authenticated") {
 			fetchStats();
 			fetchBooks();
+			fetchUserReservations();
 		}
 	}, [status, router]);
 
@@ -83,6 +91,23 @@ export default function DashboardPage() {
 		}
 	};
 
+	const fetchUserReservations = async () => {
+		try {
+			const response = await fetch("/api/books/my-books?type=reserved");
+			if (response.ok) {
+				const data = await response.json();
+				const reservedBookIds = new Set<string>(
+					data.books
+						.filter((b: any) => b.reservedBy === session?.user?.id)
+						.map((b: any) => b._id as string)
+				);
+				setUserReservations(reservedBookIds);
+			}
+		} catch (error) {
+			console.error("Error fetching user reservations:", error);
+		}
+	};
+
 	const fetchBooks = async () => {
 		setLoading(true);
 		try {
@@ -101,6 +126,15 @@ export default function DashboardPage() {
 					new Set(data.books.map((book: Book) => book.category))
 				) as string[];
 				setCategories(uniqueCategories);
+
+				// Select a random available book as suggested book
+				const availableBooks = data.books.filter(
+					(book: Book) => book.status === "Available"
+				);
+				if (availableBooks.length > 0) {
+					const randomIndex = Math.floor(Math.random() * availableBooks.length);
+					setSuggestedBook(availableBooks[randomIndex]);
+				}
 			}
 		} catch (error) {
 			console.error("Error fetching books:", error);
@@ -155,6 +189,38 @@ export default function DashboardPage() {
 		}
 	};
 
+	const handleReserve = async (bookId: string) => {
+		setReserving(bookId);
+		try {
+			const response = await fetch(`/api/reservations`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ bookId }),
+			});
+			const data = await response.json();
+
+			if (response.ok) {
+				alert(
+					"Book reserved successfully! A librarian will prepare it for pickup."
+				);
+				// Add book to user reservations
+				setUserReservations((prev) => new Set([...prev, bookId]));
+				// Refresh books list and stats
+				await fetchBooks();
+				await fetchStats();
+			} else {
+				alert(data.error || "Failed to reserve book");
+			}
+		} catch (error) {
+			console.error("Error reserving book:", error);
+			alert("An error occurred while reserving the book");
+		} finally {
+			setReserving(null);
+		}
+	};
+
 	const handleDelete = async () => {
 		if (!bookToDelete) return;
 
@@ -197,24 +263,6 @@ export default function DashboardPage() {
 	const userRole = session?.user?.role;
 	const isLibrarianOrAdmin = userRole === "librarian" || userRole === "admin";
 
-	// Debug function
-	const debugSession = async () => {
-		console.log("=== CLIENT SESSION DEBUG ===");
-		console.log("Full session:", session);
-		console.log("User role:", userRole);
-		console.log("Is librarian or admin:", isLibrarianOrAdmin);
-
-		try {
-			const response = await fetch("/api/debug/session");
-			const data = await response.json();
-			console.log("=== SERVER SESSION DEBUG ===");
-			console.log(data);
-			alert(`Role: ${userRole}\nCheck console for full debug info`);
-		} catch (error) {
-			console.error("Debug error:", error);
-		}
-	};
-
 	if (status === "loading") {
 		return (
 			<div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -251,13 +299,6 @@ export default function DashboardPage() {
 							>
 								{userRole?.toUpperCase() || "USER"}
 							</span>
-							<button
-								onClick={debugSession}
-								className="px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-yellow-100 dark:bg-yellow-900 hover:bg-yellow-200 dark:hover:bg-yellow-800 rounded-md transition-colors"
-								title="Click to debug session"
-							>
-								🐛 Debug
-							</button>
 						</div>
 						<p className="mt-2 text-gray-600 dark:text-gray-400">
 							{isLibrarianOrAdmin
@@ -288,96 +329,153 @@ export default function DashboardPage() {
 					)}
 				</div>
 
-				{/* Stats Cards */}
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+				{/* Stats and Suggested Book */}
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+					{/* Compact Stats */}
 					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-						<div className="flex items-center">
-							<div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
-								<svg
-									className="h-6 w-6 text-white"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-									/>
-								</svg>
+						<div className="space-y-4">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 bg-blue-500 rounded-md p-2">
+										<svg
+											className="h-5 w-5 text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+											/>
+										</svg>
+									</div>
+									<div>
+										<p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+											Total Books
+										</p>
+										<p className="text-2xl font-bold text-gray-900 dark:text-white">
+											{stats.total}
+										</p>
+									</div>
+								</div>
 							</div>
-							<div className="ml-5 w-0 flex-1">
-								<dl>
-									<dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-										Total Books
-									</dt>
-									<dd className="text-3xl font-semibold text-gray-900 dark:text-white">
-										{stats.total}
-									</dd>
-								</dl>
+							<div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 bg-green-500 rounded-md p-2">
+										<svg
+											className="h-5 w-5 text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+											/>
+										</svg>
+									</div>
+									<div>
+										<p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+											Available
+										</p>
+										<p className="text-2xl font-bold text-green-600 dark:text-green-400">
+											{stats.available} / {stats.total}
+										</p>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 
-					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-						<div className="flex items-center">
-							<div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-								<svg
-									className="h-6 w-6 text-white"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-							</div>
-							<div className="ml-5 w-0 flex-1">
-								<dl>
-									<dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-										Available Books
-									</dt>
-									<dd className="text-3xl font-semibold text-gray-900 dark:text-white">
-										{stats.available}
-									</dd>
-								</dl>
-							</div>
-						</div>
-					</div>
+					{/* Suggested Book */}
+					<div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+						{suggestedBook ? (
+							<div className="flex flex-col sm:flex-row h-full">
+								{/* Book Cover */}
+								<div className="relative w-full sm:w-32 h-40 sm:h-auto bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+									{suggestedBook.coverImage ? (
+										<Image
+											src={suggestedBook.coverImage}
+											alt={suggestedBook.title}
+											fill
+											className="object-cover"
+										/>
+									) : (
+										<div className="flex items-center justify-center h-full">
+											<svg
+												className="w-12 h-12 text-gray-400"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+												/>
+											</svg>
+										</div>
+									)}
+								</div>
 
-					<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-						<div className="flex items-center">
-							<div className="flex-shrink-0 bg-yellow-500 rounded-md p-3">
-								<svg
-									className="h-6 w-6 text-white"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
+								{/* Book Info */}
+								<div className="flex-1 p-4 flex flex-col justify-between">
+									<div>
+										<div className="flex items-start justify-between mb-2">
+											<div className="flex-1">
+												<div className="flex items-center gap-2 mb-1">
+													<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+														✨ Suggested
+													</span>
+													<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+														Available
+													</span>
+												</div>
+												<h3 className="font-bold text-gray-900 dark:text-white text-lg line-clamp-1">
+													{suggestedBook.title}
+												</h3>
+												<p className="text-sm text-gray-600 dark:text-gray-400">
+													by {suggestedBook.author}
+												</p>
+											</div>
+										</div>
+										<p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 mt-2">
+											{suggestedBook.description}
+										</p>
+									</div>
+									<div className="flex gap-2 mt-3">
+										{!isLibrarianOrAdmin && (
+											<button
+												onClick={() => handleBorrow(suggestedBook._id)}
+												disabled={borrowing === suggestedBook._id}
+												className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:bg-green-400 rounded-md transition-colors"
+											>
+												{borrowing === suggestedBook._id
+													? "Borrowing..."
+													: "Borrow Now"}
+											</button>
+										)}
+										<Link
+											href={`/dashboard/books/${suggestedBook._id}`}
+											className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+										>
+											View Details
+										</Link>
+									</div>
+								</div>
 							</div>
-							<div className="ml-5 w-0 flex-1">
-								<dl>
-									<dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-										Borrowed Books
-									</dt>
-									<dd className="text-3xl font-semibold text-gray-900 dark:text-white">
-										{stats.borrowed}
-									</dd>
-								</dl>
+						) : (
+							<div className="flex items-center justify-center h-full p-6">
+								<p className="text-gray-500 dark:text-gray-400">
+									No available books to suggest
+								</p>
 							</div>
-						</div>
+						)}
 					</div>
 				</div>
 
@@ -652,8 +750,19 @@ export default function DashboardPage() {
 																? "Borrowing..."
 																: "Borrow Book"}
 														</button>
-														<button className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors">
-															Reserve Book
+														<button
+															onClick={() => handleReserve(book._id)}
+															disabled={
+																reserving === book._id ||
+																userReservations.has(book._id)
+															}
+															className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-md transition-colors"
+														>
+															{reserving === book._id
+																? "Reserving..."
+																: userReservations.has(book._id)
+																? "Reserved by You"
+																: "Reserve Book"}
 														</button>
 													</>
 												) : book.borrowedBy === session?.user.id ? (
@@ -671,11 +780,28 @@ export default function DashboardPage() {
 														<div className="w-full px-4 py-2 text-sm font-medium text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-md">
 															Currently Borrowed
 														</div>
-														<button className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors">
-															Reserve Book
+														<button
+															onClick={() => handleReserve(book._id)}
+															disabled={
+																reserving === book._id ||
+																userReservations.has(book._id)
+															}
+															className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-md transition-colors"
+														>
+															{reserving === book._id
+																? "Reserving..."
+																: userReservations.has(book._id)
+																? "Reserved by You"
+																: "Reserve Book"}
 														</button>
 													</>
 												)}
+												<Link
+													href={`/dashboard/books/${book._id}`}
+													className="block w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors text-center"
+												>
+													View Details & Reviews
+												</Link>
 											</>
 										)}
 									</div>
